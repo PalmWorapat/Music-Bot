@@ -1,2 +1,10 @@
+[project]
+name = "discord-music-bot-health"
+version = "0.1.0"
+requires-python = ">=3.9"
+dependencies = [
+    "Flask>=3.0,<4",
+]
+
 [tool.vercel]
 entrypoint = "myserver:app"
