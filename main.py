@@ -11,6 +11,7 @@ import yt_dlp
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
+from myserver import server_on
 
 load_dotenv()
 
@@ -472,4 +473,6 @@ async def leave(interaction: discord.Interaction) -> None:
 if not DISCORD_TOKEN:
     raise RuntimeError("Missing DISCORD_TOKEN. Add it in Replit Secrets or .env")
 
+
+server_on()  # Start the Flask server in a separate thread
 bot.run(DISCORD_TOKEN)
