@@ -1,4 +1,13 @@
-run = "python main.py"
+entrypoint = "main.py"
+run = ["python3", "main.py"]
 
 [nix]
 channel = "stable-24_05"
+
+[deployment]
+run = ["python3", "main.py"]
+build = "pip install -r requirements.txt"
+
+[[ports]]
+localPort = 8080
+externalPort = 80
