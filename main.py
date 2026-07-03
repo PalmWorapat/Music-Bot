@@ -1,6 +1,8 @@
 import asyncio
+import glob
 import os
 from collections import deque
+from ctypes.util import find_library
 from dataclasses import dataclass
 from typing import Deque, Optional
 from urllib.parse import urlparse
@@ -40,6 +42,47 @@ FFMPEG_EXECUTABLE = os.getenv("FFMPEG_EXECUTABLE") or imageio_ffmpeg.get_ffmpeg_
 # จำกัดคิวและความยาวคลิป ปรับได้ผ่าน Replit Secrets
 MAX_QUEUE_SIZE = int(os.getenv("MAX_QUEUE_SIZE", "50"))
 MAX_VIDEO_SECONDS = int(os.getenv("MAX_VIDEO_SECONDS", "10800"))
+
+
+def load_discord_opus() -> None:
+    if discord.opus.is_loaded():
+        return
+
+    candidates = [
+        os.getenv("OPUS_LIBRARY"),
+        find_library("opus"),
+        "libopus.so.0",
+        "libopus.so",
+        "libopus.dylib",
+        "opus.dll",
+        "libopus-0.dll",
+        "opus",
+    ]
+    candidates.extend(glob.glob("/nix/store/*-opus-*/lib/libopus.so*"))
+    candidates.extend(glob.glob("/nix/store/*-libopus-*/lib/libopus.so*"))
+
+    seen = set()
+    errors = []
+    for candidate in candidates:
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        try:
+            discord.opus.load_opus(candidate)
+        except (AttributeError, OSError) as exc:
+            errors.append(f"{candidate}: {exc}")
+            continue
+        if discord.opus.is_loaded():
+            print(f"Loaded Opus library: {candidate}")
+            return
+
+    details = "\n".join(errors[-5:])
+    raise RuntimeError(
+        "Discord voice requires libopus, but it could not be loaded. "
+        "On Replit, make sure replit.nix includes pkgs.opus."
+        + (f"\nRecent load errors:\n{details}" if details else "")
+    )
+
 
 YOUTUBE_HOSTS = {
     "youtube.com",
@@ -473,6 +516,7 @@ async def leave(interaction: discord.Interaction) -> None:
 if not DISCORD_TOKEN:
     raise RuntimeError("Missing DISCORD_TOKEN. Add it in Replit Secrets or .env")
 
+load_discord_opus()
 
 server_on()  # Start the Flask server in a separate thread
 bot.run(DISCORD_TOKEN)
